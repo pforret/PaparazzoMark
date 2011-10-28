@@ -2,6 +2,7 @@
 setlocal
 set VERSION=paparazzo.cmd v 1.0 - Oct 2011
 set MAGICK=convert.exe
+set IDENTIFY=identify.exe
 set MAG_COLOR=-background #0003 -fill #FFF8
 
 set FONTNAME="Verdana"
@@ -82,8 +83,8 @@ if not exist "%OUTPUT%" (
 goto :eof
 
 :getimgtime
-for /f "usebackq delims=|" %%c in (`identify -format %%[EXIF:DateTime] %1`) do (
-set IMGTIME=%%c
+for /f "usebackq delims=|" %%c in (`%IDENTIFY% -format %%[EXIF:DateTime] %1`) do (
+	set IMGTIME=%%c
 )
 set IMGYEAR=%IMGTIME:~0,4%
 set IMGDAY=%IMGTIME:~5,5%
@@ -101,13 +102,5 @@ set IMGID=%IMGID:_MG=%
 set IMGID=%IMGID:.jpg=%
 set IMGID=%IMGID:.JPG=%
 set IMGID=%IMGID:~-4%
-
-goto :eof
-
-:basename
-
-goto :eof
-
-:playsound
 
 goto :eof
