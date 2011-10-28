@@ -17,5 +17,5 @@ papararazzo.cmd
 + default new size: 1200px longest side
 + default: add black vignette (better for readability of text, but much slower)
 
-[1]: http://tangopaparazzo.com/2011/08/marathon-del-chocolate-aug-2011/	"Tangopaparzzo.com"
+[1]: http://tangopaparazzo.com/2011/08/marathon-del-chocolate-aug-2011/	"Tangopaparazzo.com"
 [2]: http://www.imagemagick.org	"ImageMagick"
