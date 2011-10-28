@@ -13,14 +13,15 @@ if "%1" == "" set SRC=%CD%
 cls
 echo =============
 echo --- IN  = %SRC%
+for /F %i in (%SRC%) do set NAME=%%~ni
 
-call :inputvar DEST 		%SRC%_marked	"Destination folder"
+call :inputvar DEST 		%SRC%\marked	"Destination folder"
 if not exist %DEST%\. mkdir %DEST%
 echo --- OUT = %DEST%
 
 call :inputvar COPYRIGHT 	"%USERNAME%"	"Photographer credit"
 
-call :inputvar SUBSCRIPT 	"Milonga"		"Subscript of album"
+call :inputvar SUBSCRIPT 	"%NAME%"		"Subscript of album"
 
 call :inputvar MAXPIX    	1200 			"Max size (pixels)"
 
@@ -100,6 +101,10 @@ set IMGID=%IMGID:_MG=%
 set IMGID=%IMGID:.jpg=%
 set IMGID=%IMGID:.JPG=%
 set IMGID=%IMGID:~-4%
+
+goto :eof
+
+:basename
 
 goto :eof
 
