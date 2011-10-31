@@ -5,18 +5,21 @@ set MAGICK=convert.exe
 set IDENTIFY=identify.exe
 set MAG_COLOR=-background #0003 -fill #FFF8
 
-set FONTNAME="Verdana"
-set COPY_FONT=-gravity NorthEast -fill #FFF4 -font %FONTNAME% -pointsize 24
-set SUBS_FONT=-gravity SouthEast -fill #FFF8 -font %FONTNAME% -pointsize 36
+set FONTNAME="Georgia"
 ::set MAG_VIGN=-unsharp 3
 set SRC=%1
 if "%1" == "" set SRC=%CD%
 cls
+call :findprogs
+if [%P_IDEN%] == [] (
+	echo ERROR: Can't find ImageMagick programs identify.exe/convert.exe
+	goto :eof
+)
 echo =============
-echo --- IN  = %SRC%
-for /F %i in (%SRC%) do set NAME=%%~ni
+echo --- SRC = %SRC%
+for %%i in (%SRC%) do set NAME=%%~ni
 
-call :inputvar DEST 		%SRC%\marked	"Destination folder"
+call :inputvar DEST 		%SRC%\export	"Destination folder"
 if not exist %DEST%\. mkdir %DEST%
 echo --- OUT = %DEST%
 
@@ -26,6 +29,11 @@ call :inputvar SUBSCRIPT 	"%NAME%"		"Subscript of album"
 
 call :inputvar MAXPIX    	1200 			"Max size (pixels)"
 
+set /a FSIZE1=%MAXPIX% * 2 / 100
+set /a FSIZE2=%MAXPIX% * 3 / 100
+set COPY_FONT=-gravity NorthEast -fill #FFF8 -font %FONTNAME% -pointsize %FSIZE1%
+set SUBS_FONT=-gravity SouthEast -fill #FFF8 -font %FONTNAME% -pointsize %FSIZE2%
+
 call :inputvar VIGNETTE    	Y 				"Add dark vignetting (slower!)"
 if "%VIGNETTE%" == "Y" set MAG_VIGN=-background #0008 -vignette 0x300-30-30%%
 
@@ -33,7 +41,7 @@ pushd %SRC%
 for %%f in ( *.jpg ) do (
 	call :markone "%%f"
 )
-
+start %DEST%
 popd
 
 
@@ -68,7 +76,7 @@ goto :eof
 set INFILE=%1
 call :getimgtime %1
 
-set OUTFILE=PFOR_%IMGDAY%_%IMGHOUR%_%IMGID%.jpg
+set OUTFILE=EXP_%IMGDAY%-%IMGHOUR%_%IMGID%.jpg
 set OUTPUT=%DEST%\%OUTFILE:"=%
 
 set TXT_COPY="   Photo: %IMGYEAR% %COPYRIGHT%   "
@@ -103,4 +111,22 @@ set IMGID=%IMGID:.jpg=%
 set IMGID=%IMGID:.JPG=%
 set IMGID=%IMGID:~-4%
 
+goto :eof
+
+:findprogs
+set PATHQ=%PATH%
+set P_IDEN=
+set P_CONV=
+:WHILE
+    if "%PATHQ%"=="" goto WEND
+    for /F "delims=;" %%i in ("%PATHQ%") do (
+		if exist "%%i\identify.exe" set P_IDEN="%%i\identify.exe"
+		)
+    for /F "delims=; tokens=1,*" %%i in ("%PATHQ%") do set PATHQ=%%j
+    goto WHILE 
+:WEND
+
+if not [%P_IDEN%] == [] (
+	set P_CONV=%P_IDEN:identify.exe=convert.exe%
+)
 goto :eof
