@@ -1,10 +1,11 @@
 @echo off
 setlocal
 
-echo --- pmark.cmd - watermark your photos
-echo     @author Peter Forret - http://tangopaparazzo.com
-echo     @version 0.1 - June 2013
-echo     @requires PHP5, ImageMagick6
+echo -- pmark.cmd - PaparazzoMark - watermark your photos
+echo    @author Peter Forret - http://tangopaparazzo.com
+echo    @git: https://github.com/pforret/PaparazzoMark/
+echo    @version 0.1 - June 2013
+echo    @requires PHP5.3, ImageMagick6.6
 call :checkphp
 call :checkmagick
 

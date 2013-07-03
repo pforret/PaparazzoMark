@@ -1,5 +1,5 @@
 <?php
-
+date_default_timezone_set("UTC");
 function contains($haystack,$needle){
 	if(!$needle) return false;
 	$pos=strpos($haystack,$needle);
@@ -12,18 +12,51 @@ function contains($haystack,$needle){
 function trace($input,$type="INFO"){
 	global $debug;
 	
-	if(!$debug)	return false;
 	$time=date("H:m:s");
-	echo ">> $time: ";
-	if(is_array($input)){
+	switch($type){
+	case "INFO":
+		// only show if in debug mode
+		if($debug){
+			echo "   $time: ";
+			if(is_array($input)){
+				echo "\n";
+				print_r($input);
+			} else {
+				print($input);
+			}
+			echo "\n";
+		}
+		break;
+	case "WARNING":
+		// always show
+		echo "*  $time: WARNING: ";
+		if(is_array($input)){
+			echo "\n";
+			print_r($input);
+		} else {
+			print($input);
+		}
 		echo "\n";
-		print_r($input);
-	} else {
-		print($input);
+		break;
+	case "ERROR":
+		// always show and then stop script
+		echo "!! $time: ERROR: ";
+		if(is_array($input)){
+			echo "\n";
+			print_r($input);
+		} else {
+			print($input);
+		}
+		echo "\n";
+		exit(1);
+		break;
+	default:
+		// wrong status type
+		echo "trace: unknown type [$type]\n";
 	}
-	echo "\n";
 	return true;
 }
+
 
 function listfiles($folder,$ext="",$recursive=false){
 	//trace("listfiles: Reading [$ext] files from folder [$folder]");
