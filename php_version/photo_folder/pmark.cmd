@@ -1,5 +1,6 @@
 @echo off
 setlocal
+cls
 
 echo -- pmark.cmd - PaparazzoMark - watermark your photos
 echo    @author Peter Forret - http://tangopaparazzo.com

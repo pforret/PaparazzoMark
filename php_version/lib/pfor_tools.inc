@@ -9,12 +9,12 @@ function contains($haystack,$needle){
 	return false; //normally never
 }
 
-function trace($input,$type="INFO"){
+function trace($input,$type="DEBUG"){
 	global $debug;
 	
 	$time=date("H:m:s");
 	switch($type){
-	case "INFO":
+	case "DEBUG":
 		// only show if in debug mode
 		if($debug){
 			echo "   $time: ";
@@ -26,6 +26,16 @@ function trace($input,$type="INFO"){
 			}
 			echo "\n";
 		}
+		break;
+	case "INFO":
+		echo "   $time: ";
+		if(is_array($input)){
+			echo "\n";
+			print_r($input);
+		} else {
+			print($input);
+		}
+		echo "\n";
 		break;
 	case "WARNING":
 		// always show
@@ -164,4 +174,13 @@ function do_if_necessary($sources,$outputs){
 	
 }
 
+function shorten_path($path,$length=60){
+	$path=realpath($path);
+	if(strlen($path)>$length){
+		$plen=strlen($path);
+		return substr($path,0,3) . "..." . substr($path,$plen-$length-5);
+	} else {
+		return $path;
+	}
+}
 ?>

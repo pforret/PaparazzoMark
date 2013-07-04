@@ -1,5 +1,5 @@
 <?php
-include_once("tools.inc");
+include_once("pfor_tools.inc");
 
 Class IniFile{
 	var $ready=false;
@@ -19,6 +19,7 @@ Class IniFile{
 			trace("IniFile:: cannot interpret INI file [$file] (is it a valid INI file?)");
 			return false;
 		}
+		//trace($this->data);
 		$this->ready=true;
 		return true;
 	}
@@ -30,7 +31,7 @@ Class IniFile{
 		}
 		$answer=Array();
 		foreach($this->data as $sect_name => $sect_data){
-			if($sect_name != $this->defname){
+			if($sect_name != $this->defname AND substr($sect_name,0,1) <> "_"){
 				$answer[]=$sect_name;
 			}
 		}
@@ -38,6 +39,7 @@ Class IniFile{
 	}
 
 	function get_value($section,$param,$defval=false){
+		$return=false;
 		if(!$this->ready){
 			trace("IniFile::get_value - obj not properly initilaized");
 			return false;
@@ -47,14 +49,21 @@ Class IniFile{
 			return false;
 		}
 		if(isset($this->data[$section][$param])){
-			return $this->data[$section][$param];
+			$return=$this->data[$section][$param];
+			trace("get_value: [$section][$param] -> [$return]");
+			return $return;
 		}
 		if(isset($this->data[$this->defname][$param])){
-			return $this->data[$this->defname][$param];
+			$return=$this->data[$this->defname][$param];
+			trace("get_value: [$this->defname][$param] -> [$return]");
+			return $return;
 		}
 		if(isset($defval)){
-			return $defval;
+			$return=$defval;
+			trace("get_value: [$section][$param] -> [$return] (default)");
+			return $return;
 		}
+		trace("get_value: [$section][$param] -> (empty)");
 		return false;
 	}
 }
