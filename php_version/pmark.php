@@ -2,7 +2,7 @@
 include("lib/pfor_inifile.inc");
 include("lib/pfor_magick.inc");
 // currently at version 0.1 - alpha i.e. not working yet
-//$debug=true;
+$debug=false;
 
 
 $inipaths=Array(
@@ -29,6 +29,9 @@ if(!$ifile){
 } else {
 	trace("INI FILE: [" . shorten_path($ifile) . "]","INFO");
 }
+
+$bdebug=$ini->get_value("_export","debug",0);
+
 
 $pm=New PrepMagick;
 $AddMagick=Array();
@@ -64,7 +67,9 @@ if(!file_exists($output_dir)){
 }
 
 
-// read all texts, logos, ...
+////---------------------------------------------------------
+//// PROCESS ALL THE TEXT/IMAGE OPERATIONS
+////---------------------------------------------------------
 $sections=$ini->get_sections();
 if($sections) foreach($sections as $section){
 	$text=$ini->get_value($section,"text");
@@ -97,6 +102,10 @@ $outpre=$ini->get_value("_export","export_prefix","PM");
 $overwrite=$ini->get_value("_export","overwrite",false);
 $AddMagick[]="-quality $quality";
 
+////---------------------------------------------------------
+//// FIND ALL THE IMAGE FILES
+////---------------------------------------------------------
+
 if(contains($wildcard,",")){
 	// several sets of *.$wildcard files
 	$types=explode(",",$wildcard);
@@ -119,6 +128,11 @@ if(contains($wildcard,",")){
 if(!$imgfiles){
 	trace("No image files found - nothing to export","ERROR");
 }
+
+////---------------------------------------------------------
+//// PROCESS ALL THE IMAGE FILES
+////---------------------------------------------------------
+
 ksort($imgfiles);
 //print_r($imgfiles);
 $totimgs=count($imgfiles);
@@ -129,14 +143,18 @@ foreach($imgfiles as $imgfile => $imgname){
 	$cmd_magick=implode(" ",$AddMagick);
 	$outfile="$imgname.$outfmt";
 	$outpath="$output_dir/$outfile";
-	if(!file_exists($outpath) OR $overwrite){
+	if(!file_exists($outpath) OR $overwrite OR filemtime($imgfile) > filemtime($outpath)){
 		trace("PMARK: [" . shorten_path($imgfile,20) . "] -> [" . shorten_path($outpath,30) . "] (" . round($i*100/$totimgs) . "%)","INFO");
 		$cmd="\"$magick\" \"$imgfile\" $cmd_magick \"$outpath\" 2>&1";
 		cmdline($cmd);
 	}
 }
 
+////---------------------------------------------------------
+//// SHOW OUTPUT FOLDER
+////---------------------------------------------------------
 
+cmdline("explorer \"" . realpath($output_dir) . "\"");
 
 
 // ---------------- SUPPORTING FUNCTIONS

@@ -19,7 +19,7 @@ Class PrepMagick{
 			trace("Image [$file] can not be found","WARNING");
 			return false;
 		};
-		return("");
+		return("-gravity $this->Gravity \"$file\" -composite");
 	}
 
 
