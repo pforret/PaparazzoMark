@@ -175,10 +175,15 @@ function do_if_necessary($sources,$outputs){
 }
 
 function shorten_path($path,$length=60){
-	$path=realpath($path);
+	trace("shorten_path: INPUT = $path");
+	$clean=realpath($path);
+	if($clean) $path=$clean;
+	trace("shorten_path: CLEAN = $path");
 	if(strlen($path)>$length){
 		$plen=strlen($path);
-		return substr($path,0,3) . "..." . substr($path,$plen-$length-5);
+		trace("shorten_path: shorten from $plen to $length");
+		// if 
+		return substr($path,0,3) . "..." . substr($path,$plen-$length+5);
 	} else {
 		return $path;
 	}

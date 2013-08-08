@@ -4,6 +4,7 @@ include("lib/pfor_magick.inc");
 // currently at version 0.1 - alpha i.e. not working yet
 $debug=false;
 
+trace("PROGRAM : PMARK - PaparazzoMark v1.1","INFO");
 
 $inipaths=Array(
 	getcwd()."/pmark.ini", // this folder
@@ -30,19 +31,24 @@ if(!$ifile){
 	trace("INI FILE: [" . shorten_path($ifile) . "]","INFO");
 }
 
-$bdebug=$ini->get_value("_export","debug",0);
+$debug=$ini->get_value("_export","debug",0);
 
 
 $pm=New PrepMagick;
 $AddMagick=Array();
 
 $magick=$ini->get_value("_export","prog_im_convert","convert.exe");
+$pm->Magick=$magick;
 $identify=$ini->get_value("_export","prog_im_identify","identify.exe");
+$pm->Identify=$identify;
 
 // do resize of source picture
 $height=$ini->get_value("_export","export_height",800);
 $width=(int)$height * 1.5;
+$width=$ini->get_value("_export","export_width",$width);
 $AddMagick[]="-resize ${width}x${height}";
+trace("RESIZE  : $width x $height","INFO");
+
 
 // add border if necessary
 $b_size=$ini->get_value("_export","border_size",0);
@@ -51,9 +57,11 @@ if($b_size){
 	$AddMagick[]="-bordercolor $b_color -border $b_size";
 }
 
-$output_dir=$ini->get_value("_export","export_folder",realpath(getcwd()."/marked/"));
+$output_def=realpath(getcwd()."/_pmark/");
+trace("DEF OUT : [" . shorten_path($output_def) . "]");
+
+$output_dir=$ini->get_value("_export","export_folder",$output_def);
 $output_dir=resolve_dir($output_dir);
-trace("OUTPUT  : [" . shorten_path($output_dir) . "]","INFO");
 
 if(!file_exists($output_dir)){
 	mkdir($output_dir,0777,true);
@@ -65,6 +73,7 @@ if(!file_exists($output_dir)){
 } else {
 		trace("Output folder [$output_dir] (exists)");
 }
+trace("OUTPUT  : [" . shorten_path($output_dir) . "]","INFO");
 
 
 ////---------------------------------------------------------
@@ -74,6 +83,7 @@ $sections=$ini->get_sections();
 if($sections) foreach($sections as $section){
 	$text=$ini->get_value($section,"text");
 	$image=$ini->get_value($section,"image");
+	$border=$ini->get_value($section,"border_size");
 	if($text){
 		$pm->FontFam	=$ini->get_value($section,"text_font","Georgia");
 		$pm->FontSize 	=$ini->get_value($section,"text_size",4*round($height/100));
@@ -84,12 +94,17 @@ if($sections) foreach($sections as $section){
 
 		$AddMagick[]=$pm->CmdAnnotate($text,$position);
 	}
+	if($border){
+		$b_color=$ini->get_value($section,"border_color","#000F");
+		$AddMagick[]="-bordercolor $b_color -border $border";
+	}
 	if($image){
 		$image 		=$ini->get_value($section,"image");
 		$resize 	=$ini->get_value($section,"resize");
+		$padding 	=$ini->get_value($section,"padding");
 		$pm->Gravity 	=$ini->get_value($section,"gravity","Center");
 		
-		$AddMagick[]=$pm->CmdImprint($image,$resize);
+		$AddMagick[]=$pm->CmdImprint($image,$resize,$padding);
 
 	}
 }
@@ -136,7 +151,7 @@ if(!$imgfiles){
 ksort($imgfiles);
 //print_r($imgfiles);
 $totimgs=count($imgfiles);
-trace("IMAGES: $totimgs found");
+trace("IMAGES  : $totimgs to process","INFO");
 $i=0;
 foreach($imgfiles as $imgfile => $imgname){
 	$i++;
@@ -144,11 +159,12 @@ foreach($imgfiles as $imgfile => $imgname){
 	$outfile="$imgname.$outfmt";
 	$outpath="$output_dir/$outfile";
 	if(!file_exists($outpath) OR $overwrite OR filemtime($imgfile) > filemtime($outpath)){
-		trace("PMARK: [" . shorten_path($imgfile,20) . "] -> [" . shorten_path($outpath,30) . "] (" . round($i*100/$totimgs) . "%)","INFO");
-		$cmd="\"$magick\" \"$imgfile\" $cmd_magick \"$outpath\" 2>&1";
-		cmdline($cmd);
+		trace("PMARK IT: [" . shorten_path($imgfile) . "] (" . round($i*100/$totimgs) . "%)","INFO");
+		$pm->RunMagick("\"$imgfile\" $cmd_magick \"$outpath\"");
 	}
 }
+
+$pm->Cleanup();
 
 ////---------------------------------------------------------
 //// SHOW OUTPUT FOLDER
@@ -178,10 +194,11 @@ function resolve_dir($folder,$file=false){
 			$imgfiles=glob("*");
 			$file=$imgfiles[0];
 		}
-		$lines=cmdline("\"$identify\" -format \"%[date:*]\" \"$file\"");
+		$lines=cmdline("\"$identify\" -format \"%[exif:*]\" \"$file\"");
+		trace("EXIF DATA:" . implode("\n",$lines));
 		$date_modif="";
 		foreach($lines as $line){
-			if(contains($line,"date:modify")){
+			if(contains($line,"exif:DateTimeOriginal")){
 				list($key,$date_modif)=explode("=",$line,2);
 			}
 		}
