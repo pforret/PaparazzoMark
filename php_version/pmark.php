@@ -49,14 +49,6 @@ $width=$ini->get_value("_export","export_width",$width);
 $AddMagick[]="-resize ${width}x${height}";
 trace("RESIZE  : $width x $height","INFO");
 
-
-// add border if necessary
-$b_size=$ini->get_value("_export","border_size",0);
-if($b_size){
-	$b_color=$ini->get_value("_export","border_color","#000F");
-	$AddMagick[]="-bordercolor $b_color -border $b_size";
-}
-
 $output_def=realpath(getcwd()."/_pmark/");
 trace("DEF OUT : [" . shorten_path($output_def) . "]");
 
@@ -91,8 +83,11 @@ if($sections) foreach($sections as $section){
 		$pm->Gravity 	=$ini->get_value($section,"gravity","Center");
 		$pm->Undercolor =$ini->get_value($section,"undercolor","#0000");
 		$position		=$ini->get_value($section,"position","0");
+		$style   = $ini->get_value($section,"text_effect",false);
+		$rotation= $ini->get_value($section,"rotation",0);
+		$padding = $ini->get_value($section,"padding",5);
 
-		$AddMagick[]=$pm->CmdAnnotate($text,$position);
+		$AddMagick[]=$pm->CmdAnnotate($text,$style,$rotation,$padding);
 	}
 	if($border){
 		$b_color=$ini->get_value($section,"border_color","#000F");
@@ -105,17 +100,17 @@ if($sections) foreach($sections as $section){
 		$pm->Gravity 	=$ini->get_value($section,"gravity","Center");
 		
 		$AddMagick[]=$pm->CmdImprint($image,$resize,$padding);
-
 	}
 }
 
 // get export quality - default 95%
 $quality=$ini->get_value("_export","export_quality",95);
+$AddMagick[]="-quality $quality";
+
 $outfmt=$ini->get_value("_export","export_format","jpg");
 $wildcard=$ini->get_value("_export","source_format","jpg");
 $outpre=$ini->get_value("_export","export_prefix","PM");
 $overwrite=$ini->get_value("_export","overwrite",false);
-$AddMagick[]="-quality $quality";
 
 ////---------------------------------------------------------
 //// FIND ALL THE IMAGE FILES
@@ -164,7 +159,7 @@ foreach($imgfiles as $imgfile => $imgname){
 	}
 }
 
-$pm->Cleanup();
+if(!$debug) $pm->Cleanup();
 
 ////---------------------------------------------------------
 //// SHOW OUTPUT FOLDER
