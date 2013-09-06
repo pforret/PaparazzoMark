@@ -3,10 +3,8 @@ setlocal
 cls
 
 echo -- pmark.cmd - PaparazzoMark - watermark your photos
-echo    @author Peter Forret - http://tangopaparazzo.com
-echo    @git: https://github.com/pforret/PaparazzoMark/
-echo    @version 0.1 - June 2013
-echo    @requires PHP5.3, ImageMagick6.6
+if "%1" == "-v" goto :copyright 
+if "%1" == "-V" goto :copyright
 call :checkphp
 call :checkmagick
 
@@ -17,6 +15,14 @@ php.exe %SCRIPT%
 
 goto :eof
 
+
+:copyright
+echo    @author Peter Forret - http://tangopaparazzo.com
+echo    @git: https://github.com/pforret/PaparazzoMark/
+echo    @version 0.1 - June 2013
+echo    @requires PHP5.3, ImageMagick6.6
+
+goto :eof
 
 :checkphp
 :: --------------------------------------------------------------------

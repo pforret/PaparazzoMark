@@ -28,25 +28,56 @@ Class PrepMagick{
 		$this->TmpFiles[]=$tmp_txt;
 
 		$format="-font \"$this->FontFam\" -pointsize $this->FontSize";
-		$line="-size 800x800 canvas:#0000 -channel RGBA $format -gravity Center ";
-		switch(strtolower($style)){
-			case "shadow":
+		$line="-size 2000x2000 canvas:#0000 -channel RGBA $format -gravity Center ";
+		$style=strtolower($style);
+		$angle=0;
+		if(contains($style,"italic")){
+			$angle=10;
+		}
+		if($rotation){
+			//$line.="-rotate $rotation ";
+			$angle+=$rotation;
+		}
+		$shadow=1;
+		if($this->FontSize > 60){
+			$shadow=(int)($this->FontSize/30);
+		}
+		switch(true){
+			case contains($style,"shadow"):
 				$scolor=$this->CalcShowColor($this->FontFill);
-				$line.="-fill $scolor -annotate 0x0+0+1 \"$encoded\" ";
-				$line.="-fill $scolor -annotate 0x0+1+0 \"$encoded\" -blur 0x1 ";
-				$line.="-fill $this->FontFill -annotate 0x0+0+0 \"$encoded\" ";
+				$line.="-fill $scolor";
+				$line.="-annotate ${rotation}x${angle}+0+$shadow       \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}+$shadow+0       \"$encoded\" ";
+				$line.="-blur 0x1 ";
+				$line.="-fill $this->FontFill ";
+				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 				break;
-			case "italic":
-				$line.="-fill $this->FontFill -annotate 0x10+0+0 \"$encoded\" ";
+			case contains($style,"outline"):
+				$scolor=$this->CalcShowColor($this->FontFill);
+				$line.="-fill $scolor";
+				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}-$shadow+$shadow \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}+$shadow-$shadow \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}-$shadow-$shadow \"$encoded\" ";
+				//$line.="-blur 0x1 ";
+				$line.="-fill $this->FontFill ";
+				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
+				break;
 			default:
-				$line.="-fill $this->FontFill -annotate 0x0+0+0 \"$encoded\" ";
+				$line.="-fill $this->FontFill ";
+				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 		};
 		if($rotation){
-			$line.="-rotate $rotation ";
+			//$line.="-rotate $rotation ";
 		}
 		// remove excess borders, and add transparent padding border
 		$line.="-trim +repage -bordercolor #0000 -border $padding -quality 99 ";
 		$this->RunMagick(" $line \"$tmp_txt\"");
+		if(!file_exists($tmp_txt)){
+			trace("Cannot create TXT image for [$html]","ERROR");
+		}
+		trace("TEXT    : [$html]","INFO");
 		return("-gravity $this->Gravity \"$tmp_txt\" -composite");
 	}
 
@@ -65,7 +96,10 @@ Class PrepMagick{
 		if($padding)	$line.="-bordercolor #0000 -border $padding ";
 		$line.="-quality 99 ";
 		$this->RunMagick("\"$file\" $line \"$tmp_img\"");
-		trace("CREATE: watermark $file");
+		if(!file_exists($tmp_img)){
+			trace("Cannot create image for [$file]","ERROR");
+		}
+		trace("IMAGE   : [$file]","INFO");
 		return("-gravity $this->Gravity \"$tmp_img\" -composite");
 	}
 
@@ -96,10 +130,18 @@ Class PrepMagick{
 	}
 
 	function CalcShowColor($original){
-		if($original== "#FFFF")
-			return "#0008";
-		else 
-			return "#FFF8";
+		switch($original){
+			case "#FFF":
+			case "#FFFF":
+				return "#0008";
+				break;
+			case "#000":
+			case "#000F":
+				return "#FFF8";
+				break;
+			default:
+				return "#0008";
+		}
 	}
 
 }

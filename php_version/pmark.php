@@ -26,7 +26,6 @@ foreach($inipaths as $inipath){
 }
 if(!$ifile){
 	trace("No INI instructions found","ERROR");
-	//print_r($ini);
 } else {
 	trace("INI FILE: [" . shorten_path($ifile) . "]","INFO");
 }
