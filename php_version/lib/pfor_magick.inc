@@ -45,27 +45,30 @@ Class PrepMagick{
 		switch(true){
 			case contains($style,"shadow"):
 				$scolor=$this->CalcShowColor($this->FontFill);
-				$line.="-fill $scolor";
+				$line.="-fill $scolor ";
 				$line.="-annotate ${rotation}x${angle}+0+$shadow       \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+0       \"$encoded\" ";
 				$line.="-blur 0x1 ";
 				$line.="-fill $this->FontFill ";
+				$line.="-undercolor $this->Undercolor ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 				break;
 			case contains($style,"outline"):
 				$scolor=$this->CalcShowColor($this->FontFill);
-				$line.="-fill $scolor";
+				$line.="-fill $scolor ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow-$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow-$shadow \"$encoded\" ";
 				//$line.="-blur 0x1 ";
 				$line.="-fill $this->FontFill ";
+				$line.="-undercolor $this->Undercolor ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 				break;
 			default:
 				$line.="-fill $this->FontFill ";
+				$line.="-undercolor $this->Undercolor ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 		};
 		if($rotation){
