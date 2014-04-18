@@ -11,24 +11,39 @@ Class PrepMagick{
 	var $Magick="magick.exe";
 	var $Identify="identify.exe";
 
-	function CmdAnnotate($html,$style=false,$rotation=0,$padding=5){
+	function overlay_text($aparams){
 	/*
-	let's try to imitate this: make text into image and overlay that
-	set BLUR=-channel RGBA -blur 0x3
-	set  BACK=-gravity West -fill #000F -pointsize %SIZE2% -annotate 0x0+%HALFB%+3 %COPYRIGHT% -gravity East -pointsize %SIZE1% -annotate 0x0+%HALFB%+3 %TXT_SUBS% -channel RGBA -blur 0x2
-	set BACK2=-gravity West -fill #000F -pointsize %SIZE2% -annotate 0x0+%HALFB%+2 %COPYRIGHT% -gravity East -pointsize %SIZE1% -annotate 0x0+%HALFB%+2 %TXT_SUBS% -channel RGBA -blur 0x2
-	set FRONT=-gravity West -fill #FFFF -pointsize %SIZE2% -annotate 0x0+%HALFB%+3 %COPYRIGHT% -gravity East -pointsize %SIZE1% -annotate 0x0+%HALFB%+3 %TXT_SUBS%
-
-	convert -size %DOUBLE%x%HEIGHT% canvas:#0000 %FONTSTYLE% %BACK% %BACK2% %FRONT% -quality 96 %WATERMARK%
+	(
+	    [background] => #0003
+	    [gravity] => East
+	    [padding] => 20
+	    [text] =>  blablabla
+	    [text_color] => #FFFF
+	    [text_effect] => outline
+	    [text_font] => Gabriola
+	    [text_size] => 30
+	)
 	*/
-		$encoded=html_entity_decode($html,null, 'ISO-8859-1');
+		$text=$aparams["text"];
+		$font=(  $aparams["text_font"] ? $aparams["text_font"]  : "Courier");
+		$size=(  $aparams["text_size"] ? $aparams["text_size"]  : 50);
+		$color=($aparams["text_color"] ? $aparams["text_color"] : "#FFF");
+		$style=$aparams["text_effect"];
+		$padding=( $aparams["padding"] ? $aparams["padding"]    : 0 );
+		$grav=(    $aparams["gravity"] ? $aparams["gravity"]    : "Center" );
+		$back=( $aparams["background"] ? $aparams["background"] : "#0000" );
+		$ucol=( $aparams["undercolor"] ? $aparams["undercolor"] : false );
+
+		$encoded=html_entity_decode($text,null, 'ISO-8859-1');
 
 		// let's make a temp image
-		$tmp_txt="./_" . md5("$html"). ".png";
+		$begin=preg_replace("#[^a-zA-Z0-9]*#","",$encoded);
+		$begin=substr($begin,0,8);
+		$tmp_txt="./_$begin.$size." . substr(md5(serialize($aparams)),0,8) . ".png";
 		$this->TmpFiles[]=$tmp_txt;
 
-		$format="-font \"$this->FontFam\" -pointsize $this->FontSize";
-		$line="-size 2000x2000 canvas:#0000 -channel RGBA $format -gravity Center ";
+		$format="";
+		$line="-size 2000x2000 canvas:#0000 -channel RGBA -font \"$font\" -pointsize $size -gravity $grav ";
 		$style=strtolower($style);
 		$angle=0;
 		if(contains($style,"italic")){
@@ -39,49 +54,52 @@ Class PrepMagick{
 			$angle+=$rotation;
 		}
 		$shadow=1;
-		if($this->FontSize > 60){
-			$shadow=(int)($this->FontSize/30);
+		if($size > 60){
+			$shadow=round($size/30);
+			trace("Using shadow distance of $shadow");
 		}
 		switch(true){
 			case contains($style,"shadow"):
-				$scolor=$this->CalcShowColor($this->FontFill);
+				// add a shadow on the right and bottom
+				$scolor=$this->CalcShowColor($color);
 				$line.="-fill $scolor ";
 				$line.="-annotate ${rotation}x${angle}+0+$shadow       \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+0       \"$encoded\" ";
 				$line.="-blur 0x1 ";
-				$line.="-fill $this->FontFill ";
-				$line.="-undercolor $this->Undercolor ";
+				$line.="-fill $color ";
+				if($undercolor)	$line.="-undercolor $ucol ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 				break;
 			case contains($style,"outline"):
-				$scolor=$this->CalcShowColor($this->FontFill);
+				// like a shadow all around
+				$scolor=$this->CalcShowColor($color);
 				$line.="-fill $scolor ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow-$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow-$shadow \"$encoded\" ";
 				//$line.="-blur 0x1 ";
-				$line.="-fill $this->FontFill ";
-				$line.="-undercolor $this->Undercolor ";
+				$line.="-fill $color ";
+				if($undercolor)	$line.="-undercolor $ucol ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 				break;
 			default:
-				$line.="-fill $this->FontFill ";
-				$line.="-undercolor $this->Undercolor ";
+				$line.="-fill $color ";
+				if($undercolor)	$line.="-undercolor $undercolor ";
 				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
 		};
 		if($rotation){
 			//$line.="-rotate $rotation ";
 		}
 		// remove excess borders, and add transparent padding border
-		$line.="-trim +repage -bordercolor #0000 -border $padding -quality 99 ";
+		$line.="-trim +repage -bordercolor $back -border $padding -quality 99 ";
 		$this->RunMagick(" $line \"$tmp_txt\"");
 		if(!file_exists($tmp_txt)){
 			trace("Cannot create TXT image for [$html]","ERROR");
 		}
-		trace("TEXT    : [$html]","INFO");
-		return("-gravity $this->Gravity \"$tmp_txt\" -composite");
+		trace("MARK TXT: [$begin]","INFO");
+		return("-gravity $grav \"$tmp_txt\" -composite");
 	}
 
 	function CmdImprint($file,$resize=false,$padding=5){
@@ -102,8 +120,83 @@ Class PrepMagick{
 		if(!file_exists($tmp_img)){
 			trace("Cannot create image for [$file]","ERROR");
 		}
-		trace("IMAGE   : [$file]","INFO");
+		trace("MARK IMG: [$file]","INFO");
 		return("-gravity $this->Gravity \"$tmp_img\" -composite");
+	}
+
+	function overlay_image($aparams){
+		$file=$aparams["image"];
+		if(!file_exists($file)){
+			trace("Image [$file] can not be found","WARNING");
+			return false;
+		};
+		$file=realpath($file);
+		$bname=basename($file);
+
+		$padding=( $aparams["padding"] ? $aparams["padding"]    : 0 );
+		$back=( $aparams["background"] ? $aparams["background"] : "#0000" );
+		$resize=(  $aparams["resize"]  ? $aparams["resize"]     : false );
+		$grav=(    $aparams["gravity"] ? $aparams["gravity"]    : "Center" );
+		$format="-gravity $grav ";
+		// create unique temp file
+		$begin=preg_replace("#[^a-zA-Z0-9]*#","",basename($file));
+		$begin=substr($begin,0,8);
+		$tmp_img="./_img.$begin." . substr(md5(serialize($aparams)),0,8) . ".png";
+		$this->TmpFiles[]=$tmp_img;
+		$line="";
+		if($resize)		$line.="-resize $resize ";
+		if($padding)	$line.="-bordercolor $back -border $padding ";
+		$line.="-quality 99 ";
+		$this->RunMagick("\"$file\" $line \"$tmp_img\"");
+		if(!file_exists($tmp_img)){
+			trace("Cannot create image for [$file]","ERROR");
+		}
+		trace("MARK IMG: [$bname]","INFO");
+		return("-gravity $grav \"$tmp_img\" -composite");
+	}
+
+	function set_tags($aparams){
+		/*
+		contact_name="Tango Paparazzo"
+		contact_email="tangopaparazzo@gmail.com"
+		contact_url="http://tangopaparazzo.com"
+
+		2#05#Object Name="::Object Name"
+		2#55#Date Created="::Date Created"
+		2#80#By-line="::By-line"
+		2#110#Credit="::Credit"
+		2#115#Source="::Source"
+		2#116#Copyright Notice="::Copyright Notice"
+		2#118#Contact="::Contact"
+		2#120#Caption="::Caption"
+
+		What is automatically used in Facebook:
+		::Object Name
+		::Caption ::Copyright Notice
+		*/
+		$tmp_txt="./_iptc." . substr(md5(serialize($aparams)),0,8) . ".txt";
+		$iptc_tags=Array();
+		if($aparams["contact_name"]){
+			$iptc_tags[]=$this->format_iptc("2#110#Credit",$aparams["contact_name"]);
+			$iptc_tags[]=$this->format_iptc("2#116#Copyright Notice","(c) " . $aparams["contact_name"]);
+		}
+		if($aparams["contact_email"]){	$iptc_tags[]=$this->format_iptc("2#118#Contact",$aparams["contact_email"]);		}
+		if($aparams["contact_url"]){	$iptc_tags[]=$this->format_iptc("2#80#By-line",$aparams["contact_url"]);	}
+		if($aparams["caption"]){		$iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["caption"]);	}
+		if($aparams["name"]){			$iptc_tags[]=$this->format_iptc("2#05#Object Name",$aparams["name"]);	}
+		if($iptc_tags){
+			trace($iptc_tags);
+			$iptc_text=implode("\r\n",$iptc_tags);
+			file_put_contents($tmp_txt,$iptc_text);
+			$this->TmpFiles[]=$tmp_txt;
+			trace("SET TAGS: [" . $aparams["contact_name"] ."]","INFO");
+			return("-profile 8BIMTEXT:$tmp_txt");
+		}
+
+	}
+
+	function format_iptc($key,$val){
+		return "$key=\"$val\"";
 	}
 
 

@@ -37,6 +37,15 @@ function trace($input,$type="DEBUG"){
 		}
 		echo "\n";
 		break;
+	case "STAY":
+		echo "   $time: ";
+		if(is_array($input)){
+			//
+		} else {
+			print($input);
+		}
+		echo "                     \r";
+		break;
 	case "WARNING":
 		// always show
 		echo "*  $time: WARNING: ";

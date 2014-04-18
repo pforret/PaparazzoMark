@@ -4,32 +4,20 @@ include("lib/pfor_magick.inc");
 // currently at version 0.1 - alpha i.e. not working yet
 $debug=false;
 
-trace("PROGRAM : PMARK - PaparazzoMark v1.1","INFO");
+trace("PROGRAM : PMARK - PaparazzoMark v1.2","INFO");
 
 $inipaths=Array(
-	getcwd()."/pmark.ini", // this folder
-	dirname(getcwd())."/pmark.ini",	// parent folder
-	__DIR__."/pmark.ini", // script folder
+	getcwd(), // this folder
+	dirname(getcwd()),	// parent folder
+	__DIR__, // script folder
 	);
 
-$ifile=false;
-$ini=false;
-
-trace("SOURCE  : [" . shorten_path(getcwd()) . "]","INFO");
-foreach($inipaths as $inipath){
-	if(!$ifile){
-		if(file_exists($inipath)){
-			$ifile=realpath($inipath);
-			$ini=New IniFile($ifile);
-		}
-	}
+$ini=New IniFile($ifile);
+$ifile=$ini->find_file($inipaths,"pmark.ini");
+if(!ifile){
+	trace("Cannot find INI file","ERROR");
 }
-if(!$ifile){
-	trace("No INI instructions found","ERROR");
-} else {
-	trace("INI FILE: [" . shorten_path($ifile) . "]","INFO");
-}
-
+$ini->read_file($ifile);
 $debug=$ini->get_value("_export","debug",0);
 
 
@@ -76,40 +64,31 @@ if($sections) foreach($sections as $section){
 	$image=$ini->get_value($section,"image");
 	$border=$ini->get_value($section,"border_size");
 	if($text){
-		$pm->FontFam	=$ini->get_value($section,"text_font","Georgia");
-		$pm->FontSize 	=$ini->get_value($section,"text_size",4*round($height/100));
-		$pm->FontFill	=$ini->get_value($section,"text_color","#FFFF");
-		$pm->Gravity 	=$ini->get_value($section,"gravity","Center");
-		$pm->Undercolor =$ini->get_value($section,"undercolor","#0000");
-		$position		=$ini->get_value($section,"position","0");
-		$style   = $ini->get_value($section,"text_effect",false);
-		$rotation= $ini->get_value($section,"rotation",0);
-		$padding = $ini->get_value($section,"padding",5);
-
-		$AddMagick[]=$pm->CmdAnnotate($text,$style,$rotation,$padding);
+		$AddMagick[]=$pm->overlay_text($ini->get_all_values($section));
 	}
 	if($border){
 		$b_color=$ini->get_value($section,"border_color","#000F");
 		$AddMagick[]="-bordercolor $b_color -border $border";
 	}
 	if($image){
-		$image 		=$ini->get_value($section,"image");
-		$resize 	=$ini->get_value($section,"resize");
-		$padding 	=$ini->get_value($section,"padding");
-		$pm->Gravity 	=$ini->get_value($section,"gravity","Center");
-		
-		$AddMagick[]=$pm->CmdImprint($image,$resize,$padding);
+		$AddMagick[]=$pm->overlay_image($ini->get_all_values($section));
 	}
 }
-
-// get export quality - default 95%
-$quality=$ini->get_value("_export","export_quality",95);
-$AddMagick[]="-quality $quality";
 
 $outfmt=$ini->get_value("_export","export_format","jpg");
 $wildcard=$ini->get_value("_export","source_format","jpg");
 $outpre=$ini->get_value("_export","export_prefix","PM");
 $overwrite=$ini->get_value("_export","overwrite",false);
+
+if($ini->get_value("_export","contact_name")){
+	$AddMagick[]=$pm->set_tags($ini->get_all_values("_export"));
+
+}
+
+
+// get export quality - default 95%
+$quality=$ini->get_value("_export","export_quality",95);
+$AddMagick[]="-quality $quality";
 
 ////---------------------------------------------------------
 //// FIND ALL THE IMAGE FILES
@@ -149,14 +128,16 @@ trace("IMAGES  : $totimgs to process","INFO");
 $i=0;
 foreach($imgfiles as $imgfile => $imgname){
 	$i++;
+	$bname=basename($imgfile);
 	$cmd_magick=implode(" ",$AddMagick);
 	$outfile="$imgname.$outfmt";
 	$outpath="$output_dir/$outfile";
 	if(!file_exists($outpath) OR $overwrite OR filemtime($imgfile) > filemtime($outpath)){
-		trace("PMARK IT: [" . shorten_path($imgfile) . "] (" . round($i*100/$totimgs) . "%)","INFO");
+		trace("PMARK IT: [$bname] (" . round($i*100/$totimgs) . "%)","STAY");
 		$pm->RunMagick("\"$imgfile\" $cmd_magick \"$outpath\"");
 	}
 }
+echo "\n";
 
 if(!$debug) $pm->Cleanup();
 
@@ -165,6 +146,10 @@ if(!$debug) $pm->Cleanup();
 ////---------------------------------------------------------
 
 cmdline("explorer \"" . realpath($output_dir) . "\"");
+if($debug){
+	trace("FINISHED: waiting 10 seconds");
+	sleep(10);
+}
 
 
 // ---------------- SUPPORTING FUNCTIONS
