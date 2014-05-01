@@ -162,6 +162,9 @@ Class PrepMagick{
 		contact_url="http://tangopaparazzo.com"
 
 		2#05#Object Name="::Object Name"
+		2#5#Image Name="GSPCA kittens"
+		2#25#Keyword="Kittens"
+		2#25#Keyword="GSPCA"
 		2#55#Date Created="::Date Created"
 		2#80#By-line="::By-line"
 		2#110#Credit="::Credit"
@@ -173,19 +176,36 @@ Class PrepMagick{
 		What is automatically used in Facebook:
 		::Object Name
 		::Caption ::Copyright Notice
+
+		What is automatically used in Flickr:
+		::Object Name
+		::Caption ::Copyright Notice
 		*/
 		$tmp_txt="./_iptc." . substr(md5(serialize($aparams)),0,8) . ".txt";
 		$iptc_tags=Array();
 		if($aparams["contact_name"]){
 			$iptc_tags[]=$this->format_iptc("2#110#Credit",$aparams["contact_name"]);
-			$iptc_tags[]=$this->format_iptc("2#116#Copyright Notice","(c) " . $aparams["contact_name"]);
 		}
 		if($aparams["contact_email"]){	$iptc_tags[]=$this->format_iptc("2#118#Contact",$aparams["contact_email"]);		}
-		if($aparams["contact_url"]){	$iptc_tags[]=$this->format_iptc("2#80#By-line",$aparams["contact_url"]);	}
-		if($aparams["caption"]){		$iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["caption"]);	}
-		if($aparams["name"]){			$iptc_tags[]=$this->format_iptc("2#05#Object Name",$aparams["name"]);	}
+		if($aparams["event"]){
+			$iptc_tags[]=$this->format_iptc("2#05#Object Name",$aparams["event"]);	
+		}
+		if($aparams["tags"]){
+			$tags=explode(" ",$aparams["tags"]);
+			foreach($tags as $tag){
+				$iptc_tags[]=$this->format_iptc("2#25#Keyword",$tag);		
+			}
+		}
+		if($aparams["caption"]){
+			$iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["caption"]);	
+		}
+		if($aparams["contact_url"]){	
+			$iptc_tags[]=$this->format_iptc("2#80#By-line",$aparams["contact_url"]);	
+			$iptc_tags[]=$this->format_iptc("2#116#Copyright Notice",$aparams["contact_url"]);
+			//$iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["contact_url"]);	
+		}
 		if($iptc_tags){
-			trace($iptc_tags);
+			sort($iptc_tags);
 			$iptc_text=implode("\r\n",$iptc_tags);
 			file_put_contents($tmp_txt,$iptc_text);
 			$this->TmpFiles[]=$tmp_txt;

@@ -126,6 +126,9 @@ ksort($imgfiles);
 $totimgs=count($imgfiles);
 trace("IMAGES  : $totimgs to process","INFO");
 $i=0;
+$new=0;
+$b_processed=0;
+$t_start=microtime(true);
 foreach($imgfiles as $imgfile => $imgname){
 	$i++;
 	$bname=basename($imgfile);
@@ -133,14 +136,26 @@ foreach($imgfiles as $imgfile => $imgname){
 	$outfile="$imgname.$outfmt";
 	$outpath="$output_dir/$outfile";
 	if(!file_exists($outpath) OR $overwrite OR filemtime($imgfile) > filemtime($outpath)){
-		trace("PMARK IT: [$bname] (" . round($i*100/$totimgs) . "%)","STAY");
+		if($new > 3){
+			$elapsed=microtime(true)-$t_start;
+			$pps=round($new/$elapsed,1);
+			$mbps=round($b_processed/(1000000*$elapsed),1);
+			trace("PMARK IT: [$bname] (" . round($i*100/$totimgs) . "% - $pps pics/sec - $mbps MB/s)","STAY");	
+		} else {
+			trace("PMARK IT: [$bname] (" . round($i*100/$totimgs) . "%)","STAY");	
+		}
 		$pm->RunMagick("\"$imgfile\" $cmd_magick \"$outpath\"");
+		$new++;
+		$b_processed+=filesize($imgfile);
 	}
 }
+$elapsed=microtime(true)-$t_start;
+$pps=round($new/$elapsed,1);
+$mbps=round($b_processed/(1000000*$elapsed),1);
 echo "\n";
-
+trace("FINISHED: $new pics converted at $pps pics/sec","INFO");
 if(!$debug) $pm->Cleanup();
-
+sleep(2);
 ////---------------------------------------------------------
 //// SHOW OUTPUT FOLDER
 ////---------------------------------------------------------
