@@ -62,38 +62,38 @@ Class PrepMagick{
 			case contains($style,"shadow"):
 				// add a shadow on the right and bottom
 				$scolor=$this->CalcShowColor($color);
-				$line.="-fill $scolor ";
-				$line.="-annotate ${rotation}x${angle}+0+$shadow       \"$encoded\" ";
+				$line.="-fill \"$scolor\" ";
+				$line.="-annotate ${rotation}x${angle}+0+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
-				$line.="-annotate ${rotation}x${angle}+$shadow+0       \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}+$shadow+0 \"$encoded\" ";
 				$line.="-blur 0x1 ";
-				$line.="-fill $color ";
+				$line.="-fill \"$color\" ";
 				if($undercolor)	$line.="-undercolor $ucol ";
-				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
+				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 				break;
 			case contains($style,"outline"):
 				// like a shadow all around
 				$scolor=$this->CalcShowColor($color);
-				$line.="-fill $scolor ";
+				$line.="-fill \"$scolor\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow+$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}+$shadow-$shadow \"$encoded\" ";
 				$line.="-annotate ${rotation}x${angle}-$shadow-$shadow \"$encoded\" ";
 				//$line.="-blur 0x1 ";
-				$line.="-fill $color ";
-				if($undercolor)	$line.="-undercolor $ucol ";
-				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
+				$line.="-fill \"$color\" ";
+				if($undercolor)	$line.="-undercolor \"$ucol\" ";
+				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 				break;
 			default:
-				$line.="-fill $color ";
-				if($undercolor)	$line.="-undercolor $undercolor ";
-				$line.="-annotate ${rotation}x${angle}+0+0             \"$encoded\" ";
+				$line.="-fill \"$color\" ";
+				if($undercolor)	$line.="-undercolor \"$undercolor\" ";
+				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 		};
 		if($rotation){
 			//$line.="-rotate $rotation ";
 		}
 		// remove excess borders, and add transparent padding border
-		$line.="-trim +repage -bordercolor $back -border $padding -quality 99 ";
+		$line.="-trim +repage -bordercolor \"$back\" -border $padding -quality 99 ";
 		$this->RunMagick(" $line \"$tmp_txt\"");
 		if(!file_exists($tmp_txt)){
 			trace("Cannot create TXT image for [$html]","ERROR");
@@ -145,7 +145,7 @@ Class PrepMagick{
 		$this->TmpFiles[]=$tmp_img;
 		$line="";
 		if($resize)		$line.="-resize $resize ";
-		if($padding)	$line.="-bordercolor $back -border $padding ";
+		if($padding)	$line.="-bordercolor \"$back\" -border $padding ";
 		$line.="-quality 99 ";
 		$this->RunMagick("\"$file\" $line \"$tmp_img\"");
 		if(!file_exists($tmp_img)){
@@ -242,7 +242,7 @@ Class PrepMagick{
 	
 	//---------------
 	function GetTextFormat(){
-		return("-font \"$this->FontFam\" -gravity $this->Gravity -fill $this->FontFill -undercolor $this->Undercolor -pointsize $this->FontSize");
+		return("-font \"$this->FontFam\" -gravity $this->Gravity -fill $this->FontFill -undercolor \"$this->Undercolor\" -pointsize $this->FontSize");
 	}
 
 	function CalcShowColor($original){

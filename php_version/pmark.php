@@ -68,7 +68,7 @@ if($sections) foreach($sections as $section){
 	}
 	if($border){
 		$b_color=$ini->get_value($section,"border_color","#000F");
-		$AddMagick[]="-bordercolor $b_color -border $border";
+		$AddMagick[]="-bordercolor \"$b_color\" -border $border";
 	}
 	if($image){
 		$AddMagick[]=$pm->overlay_image($ini->get_all_values($section));
