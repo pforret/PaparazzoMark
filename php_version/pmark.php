@@ -160,7 +160,8 @@ sleep(2);
 //// SHOW OUTPUT FOLDER
 ////---------------------------------------------------------
 
-cmdline("explorer \"" . realpath($output_dir) . "\"");
+cmdline("explorer \"" . realpath($output_dir) . "\""); // for win
+cmdline("open \"" . realpath($output_dir) . "\""); // for mac
 if($debug){
 	trace("FINISHED: waiting 10 seconds");
 	sleep(10);
