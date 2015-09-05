@@ -10,6 +10,20 @@ Class PrepMagick{
 	var $TmpFiles=Array();
 	var $Magick="magick.exe";
 	var $Identify="identify.exe";
+	var $TmpDir=".temp";
+
+	function __construct(){
+		if(!file_exists("$this->TmpDir/.")){
+			trace("PrepMagick: create temp folder [$this->TmpDir]");
+			mkdir($this->TmpDir);
+			sleep(1);
+			if(!file_exists("$this->TmpDir/.")){
+				trace("PrepMagick: temp folder could not be created]","error");
+			}
+		} else {
+			trace("PrepMagick: using temp folder [$this->TmpDir]");
+		}
+	}
 
 	function overlay_text($aparams){
 	/*
@@ -39,7 +53,7 @@ Class PrepMagick{
 		// let's make a temp image
 		$begin=preg_replace("#[^a-zA-Z0-9]*#","",$encoded);
 		$begin=substr($begin,0,8);
-		$tmp_txt="./_$begin.$size." . substr(md5(serialize($aparams)),0,8) . ".png";
+		$tmp_txt="$this->TmpDir/_$begin.$size." . substr(md5(serialize($aparams)),0,8) . ".png";
 		$this->TmpFiles[]=$tmp_txt;
 
 		$format="";
@@ -102,28 +116,6 @@ Class PrepMagick{
 		return("-gravity $grav \"$tmp_txt\" -composite");
 	}
 
-	function CmdImprint($file,$resize=false,$padding=5){
-		$file=realpath($file);
-		if(!file_exists($file)){
-			trace("Image [$file] can not be found","WARNING");
-			return false;
-		};
-		$format="-gravity $this->Gravity ";
-		// create unique temp file
-		$tmp_img="./_" . md5("$file"). ".png";
-		$this->TmpFiles[]=$tmp_img;
-		$line="";
-		if($resize)	$line.="-resize $resize ";
-		if($padding)	$line.="-bordercolor #0000 -border $padding ";
-		$line.="-quality 99 ";
-		$this->RunMagick("\"$file\" $line \"$tmp_img\"");
-		if(!file_exists($tmp_img)){
-			trace("Cannot create image for [$file]","ERROR");
-		}
-		trace("MARK IMG: [$file]","INFO");
-		return("-gravity $this->Gravity \"$tmp_img\" -composite");
-	}
-
 	function overlay_image($aparams){
 		$file=$aparams["image"];
 		if(!file_exists($file)){
@@ -137,14 +129,16 @@ Class PrepMagick{
 		$back=( $aparams["background"] ? $aparams["background"] : "#0000" );
 		$resize=(  $aparams["resize"]  ? $aparams["resize"]     : false );
 		$grav=(    $aparams["gravity"] ? $aparams["gravity"]    : "Center" );
+		$alpha=(    $aparams["alpha"] ? $aparams["alpha"]    : "100" );
 		$format="-gravity $grav ";
 		// create unique temp file
 		$begin=preg_replace("#[^a-zA-Z0-9]*#","",basename($file));
 		$begin=substr($begin,0,8);
-		$tmp_img="./_img.$begin." . substr(md5(serialize($aparams)),0,8) . ".png";
+		$tmp_img="$this->TmpDir/_img.$begin." . substr(md5(serialize($aparams)),0,8) . ".png";
 		$this->TmpFiles[]=$tmp_img;
 		$line="";
 		if($resize)		$line.="-resize $resize ";
+		if($alpha < 100)	$line.=" -alpha on -channel a -evaluate multiply " . round($alpha/100,2) . " "; 
 		if($padding)	$line.="-bordercolor \"$back\" -border $padding ";
 		$line.="-quality 99 ";
 		$this->RunMagick("\"$file\" $line \"$tmp_img\"");
@@ -181,7 +175,7 @@ Class PrepMagick{
 		::Object Name
 		::Caption ::Copyright Notice
 		*/
-		$tmp_txt="./_iptc." . substr(md5(serialize($aparams)),0,8) . ".txt";
+		$tmp_txt="$this->TmpDir/_iptc." . substr(md5(serialize($aparams)),0,8) . ".txt";
 		$iptc_tags=Array();
 		if($aparams["contact_name"]){
 			$iptc_tags[]=$this->format_iptc("2#110#Credit",$aparams["contact_name"]);

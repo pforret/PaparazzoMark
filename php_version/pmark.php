@@ -163,8 +163,8 @@ sleep(2);
 cmdline("explorer \"" . realpath($output_dir) . "\""); // for win
 cmdline("open \"" . realpath($output_dir) . "\""); // for mac
 if($debug){
-	trace("FINISHED: waiting 10 seconds");
-	sleep(10);
+	trace("FINISHED: waiting 5 seconds");
+	sleep(5);
 }
 
 
