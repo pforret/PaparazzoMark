@@ -38,15 +38,17 @@ Class PrepMagick{
 	    [text_size] => 30
 	)
 	*/
-		$text=$aparams["text"];
-		$font=(  $aparams["text_font"] ? $aparams["text_font"]  : "Courier");
-		$size=(  $aparams["text_size"] ? $aparams["text_size"]  : 50);
-		$color=($aparams["text_color"] ? $aparams["text_color"] : "#FFF");
-		$style=$aparams["text_effect"];
-		$padding=( $aparams["padding"] ? $aparams["padding"]    : 0 );
-		$grav=(    $aparams["gravity"] ? $aparams["gravity"]    : "Center" );
-		$back=( $aparams["background"] ? $aparams["background"] : "#0000" );
-		$ucol=( $aparams["undercolor"] ? $aparams["undercolor"] : false );
+		$text=$this->getvalue($aparams,"text","");
+		$font=$this->getvalue($aparams,"text_font","Courier");
+		$size=$this->getvalue($aparams,"text_size",50);
+		$color=$this->getvalue($aparams,"text_color","#FFF");
+		$style=$this->getvalue($aparams,"text_effect","");
+		$padding=$this->getvalue($aparams,"padding",0 );
+		$grav=$this->getvalue($aparams,"gravity","Center" );
+		$back=$this->getvalue($aparams,"background","#0000" );
+		$ucol=$this->getvalue($aparams,"undercolor",false );
+		$alpha=$this->getvalue($aparams,"alpha",100);
+		$rotation=$this->getvalue($aparams,"rotation",0);
 
 		$encoded=html_entity_decode($text,null, 'ISO-8859-1');
 
@@ -82,7 +84,7 @@ Class PrepMagick{
 				$line.="-annotate ${rotation}x${angle}+$shadow+0 \"$encoded\" ";
 				$line.="-blur 0x1 ";
 				$line.="-fill \"$color\" ";
-				if($undercolor)	$line.="-undercolor $ucol ";
+				if($ucol)	$line.="-undercolor $ucol ";
 				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 				break;
 			case contains($style,"outline"):
@@ -95,18 +97,19 @@ Class PrepMagick{
 				$line.="-annotate ${rotation}x${angle}-$shadow-$shadow \"$encoded\" ";
 				//$line.="-blur 0x1 ";
 				$line.="-fill \"$color\" ";
-				if($undercolor)	$line.="-undercolor \"$ucol\" ";
+				if($ucol)	$line.="-undercolor \"$ucol\" ";
 				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 				break;
 			default:
 				$line.="-fill \"$color\" ";
-				if($undercolor)	$line.="-undercolor \"$undercolor\" ";
+				if($ucol)	$line.="-undercolor \"$ucol\" ";
 				$line.="-annotate ${rotation}x${angle}+0+0 \"$encoded\" ";
 		};
 		if($rotation){
 			//$line.="-rotate $rotation ";
 		}
 		// remove excess borders, and add transparent padding border
+		if($alpha < 100)	$line.=" -alpha on -channel a -evaluate multiply " . round($alpha/100,2) . " "; 
 		$line.="-trim +repage -bordercolor \"$back\" -border $padding -quality 99 ";
 		$this->RunMagick(" $line \"$tmp_txt\"");
 		if(!file_exists($tmp_txt)){
@@ -125,11 +128,11 @@ Class PrepMagick{
 		$file=realpath($file);
 		$bname=basename($file);
 
-		$padding=( $aparams["padding"] ? $aparams["padding"]    : 0 );
-		$back=( $aparams["background"] ? $aparams["background"] : "#0000" );
-		$resize=(  $aparams["resize"]  ? $aparams["resize"]     : false );
-		$grav=(    $aparams["gravity"] ? $aparams["gravity"]    : "Center" );
-		$alpha=(    $aparams["alpha"] ? $aparams["alpha"]    : "100" );
+		$padding=$this->getvalue($aparams,"padding",0);
+		$back=   $this->getvalue($aparams,"background","#0000");
+		$resize= $this->getvalue($aparams,"resize",false);
+		$grav=   $this->getvalue($aparams,"gravity","Center");
+		$alpha=  $this->getvalue($aparams,"alpha","100");
 		$format="-gravity $grav ";
 		// create unique temp file
 		$begin=preg_replace("#[^a-zA-Z0-9]*#","",basename($file));
@@ -211,6 +214,14 @@ Class PrepMagick{
 
 	function format_iptc($key,$val){
 		return "$key=\"$val\"";
+	}
+
+	function getvalue($avalues,$key,$default){
+		if(isset($avalues[$key])){
+			return  $avalues[$key];
+		} else {
+			return $default;
+		}
 	}
 
 

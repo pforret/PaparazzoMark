@@ -12,9 +12,9 @@ $inipaths=Array(
 	__DIR__, // script folder
 	);
 
-$ini=New IniFile($ifile);
+$ini=New IniFile;
 $ifile=$ini->find_file($inipaths,"pmark.ini");
-if(!ifile){
+if(!isset($ifile)){
 	trace("Cannot find INI file","ERROR");
 }
 $ini->read_file($ifile);
@@ -160,8 +160,19 @@ sleep(2);
 //// SHOW OUTPUT FOLDER
 ////---------------------------------------------------------
 
-cmdline("explorer \"" . realpath($output_dir) . "\""); // for win
-cmdline("open \"" . realpath($output_dir) . "\""); // for mac
+switch (PHP_OS) {
+	case 'WINNT':
+	case 'Windows':
+	case 'WIN32':
+		# code...
+		cmdline("explorer \"" . realpath($output_dir) . "\""); // for win
+		break;
+	
+	default:
+		cmdline("open \"" . realpath($output_dir) . "\""); // for mac
+		# code...
+		break;
+}
 if($debug){
 	trace("FINISHED: waiting 5 seconds");
 	sleep(5);
