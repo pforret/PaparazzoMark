@@ -207,7 +207,7 @@ Class PrepMagick{
 			file_put_contents($tmp_txt,$iptc_text);
 			$this->TmpFiles[]=$tmp_txt;
 			trace("SET TAGS: [" . $aparams["contact_name"] ."]","INFO");
-			return("-profile 8BIMTEXT:$tmp_txt");
+			return("-strip -profile 8BIMTEXT:$tmp_txt");
 		}
 
 	}
