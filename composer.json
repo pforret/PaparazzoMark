@@ -1,0 +1,33 @@
+{
+    "name": "pforret/paparazzo-mark",
+    "description": "export and watermark photos",
+    "authors": [
+        {
+            "name": "Peter Forret",
+            "email": "peter@forret.com"
+        }
+    ],
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "symfony/dotenv": "^7.1",
+        "spatie/image": "^3.7",
+        "miljar/php-exif": "^0.6.5",
+        "symfony/console": "^7.1",
+        "hassankhan/config": "^3.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pforret\\PaparazzoMark\\": "src/"
+        }
+    },
+    "require-dev": {
+        "laravel/pint": "^1.17",
+        "phpunit/phpunit": "^11.3"
+    },
+    "scripts": {
+        "format": "vendor/bin/pint",
+        "test": "vendor/bin/phpunit"
+    }
+}

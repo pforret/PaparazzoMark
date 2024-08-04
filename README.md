@@ -1,5 +1,8 @@
-papararazzo.cmd
-===============
+pforret/PaparazzoMark
+=====================
+
+![](assets/paparazzo.jpg)
+
 ### details
 +   Function: adds photographer watermark to photos - see [examples][1]
 +   Author: Peter Forret / www.tangopaparazzo.com
