@@ -1,8 +1,5 @@
-
-*.png
-
-*.ttf
-
-*.otf
-
-php_version/_iptc.33cdee6d.txt
+*/DS_Store
+.DS_Store
+/vendor/
+.phpunit.cache
+/.claude/
