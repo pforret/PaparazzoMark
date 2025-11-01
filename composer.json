@@ -29,5 +29,6 @@
     "scripts": {
         "format": "vendor/bin/pint",
         "test": "vendor/bin/phpunit"
-    }
+    },
+    "version": "1.0.0"
 }
