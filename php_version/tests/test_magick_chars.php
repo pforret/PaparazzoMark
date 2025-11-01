@@ -1,7 +1,7 @@
 <?php
 
 $text = html_entity_decode('&copy; I&ntilde;t&euml;rn&acirc;ti&ocirc;n&agrave;liz&aelig;ti&oslash;n', null, 'ISO-8859-1');
-//$text="test";
+// $text="test";
 $bname = basename($_SERVER['PHP_SELF'], '.php');
 $output = "$bname.png";
 echo "TEXT = [$text]\n";

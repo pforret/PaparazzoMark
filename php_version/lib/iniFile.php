@@ -4,11 +4,13 @@ include_once 'Tools.php';
 
 class IniFile
 {
-    public $ready = false;
+    public bool $ready = false;
 
-    public $defname = '_default';
+    public string $defname = '_default';
 
-    public function find_file($arr_folders = false, $filename = 'pmark.ini')
+    private array|false $data;
+
+    public function find_file($arr_folders = false, $filename = 'pmark.ini'): string
     {
 
         $ifile = false;
@@ -20,15 +22,13 @@ class IniFile
             if (! $ifile) {
                 if (file_exists($inipath)) {
                     $ifile = realpath($inipath);
-                } else {
-                    //
                 }
             }
         }
         if (! $ifile) {
             trace('No INI instructions found', 'ERROR');
 
-            return false;
+            return '';
         } else {
             trace('INI FILE: ['.shorten_path($ifile).']', 'INFO');
 
@@ -36,7 +36,7 @@ class IniFile
         }
     }
 
-    public function read_file($file)
+    public function read_file($file): bool
     {
         if (! $file) {
             trace('IniFile:: need filename to initialize');
@@ -54,18 +54,18 @@ class IniFile
 
             return false;
         }
-        //trace($this->data);
+        // trace($this->data);
         $this->ready = true;
 
         return true;
     }
 
-    public function get_sections()
+    public function get_sections(): array
     {
         if (! $this->ready) {
             trace('IniFile::get_value - obj not properly initilaized');
 
-            return false;
+            return [];
         }
         $answer = [];
         foreach ($this->data as $sect_name => $sect_data) {
@@ -81,55 +81,34 @@ class IniFile
     {
         $return = false;
         if (! $this->ready) {
-            trace('IniFile::get_value - obj not properly initialized');
-
             return false;
         }
         if (! isset($this->data[$section])) {
-            trace("IniFile::get_all_values - section [$section] not found");
-
             return false;
         }
         if (! $param) {
-            trace("IniFile::get_value - need param name to get [$section,$param]");
-
             return false;
         }
         if (isset($this->data[$section][$param])) {
-            $return = $this->data[$section][$param];
-            trace("get_value: [$section][$param] -> [$return]");
-
-            return $return;
+            return $this->data[$section][$param];
         }
         if (isset($this->data[$this->defname][$param])) {
-            $return = $this->data[$this->defname][$param];
-            trace("get_value: [$this->defname][$param] -> [$return]");
-
-            return $return;
+            return $this->data[$this->defname][$param];
         }
         if (isset($defval)) {
-            $return = $defval;
-            trace("get_value: [$section][$param] -> [$return] (default)");
-
-            return $return;
+            return $defval;
         }
-        trace("get_value: [$section][$param] -> (empty)");
 
         return false;
     }
 
-    public function get_all_values($section)
+    public function get_all_values($section): array
     {
-        $return = false;
         if (! $this->ready) {
-            trace('IniFile::get_all_values - obj not properly initialized');
-
-            return false;
+            return [];
         }
         if (! isset($this->data[$section])) {
-            trace("IniFile::get_all_values - section [$section] not found");
-
-            return false;
+            return [];
         }
         $keylist = [];
         foreach ($this->data[$section] as $key => $val) {
@@ -149,9 +128,7 @@ class IniFile
         if ($all_values) {
             return $all_values;
         } else {
-            trace("get_value: [$section] -> (empty)");
-
-            return false;
+            return [];
         }
     }
 }

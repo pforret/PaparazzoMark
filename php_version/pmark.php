@@ -15,7 +15,7 @@ $iniOptions = [
 
 $ini = new IniFile;
 $iniFile = $ini->find_file($iniOptions, 'pmark.ini');
-if (!isset($iniFile)) {
+if (! isset($iniFile)) {
     trace('Cannot find INI file', 'ERROR');
 }
 $ini->read_file($iniFile);
@@ -31,20 +31,20 @@ $pm->Identify = $identify;
 
 // do resize of source picture
 $height = $ini->get_value('_export', 'export_height', 800);
-$width = (int)$height * 1.5;
+$width = (int) $height * 1.5;
 $width = $ini->get_value('_export', 'export_width', $width);
 $AddMagick[] = "-resize {$width}x{$height}";
 trace("RESIZE  : $width x $height", 'INFO');
 
-$output_def = realpath(getcwd() . '/_pmark/');
-trace('DEF OUT : [' . shorten_path($output_def) . ']');
+$output_def = realpath(getcwd().'/_pmark/');
+trace('DEF OUT : ['.shorten_path($output_def).']');
 
 $output_dir = $ini->get_value('_export', 'export_folder', $output_def);
 $output_dir = resolve_dir($output_dir);
 
-if (!file_exists($output_dir)) {
+if (! file_exists($output_dir)) {
     mkdir($output_dir, 0777, true);
-    if (!file_exists($output_dir)) {
+    if (! file_exists($output_dir)) {
         trace("Cannot create output folder [$output_dir]", 'ERROR');
     } else {
         trace("Output folder [$output_dir] (created)");
@@ -52,11 +52,11 @@ if (!file_exists($output_dir)) {
 } else {
     trace("Output folder [$output_dir] (exists)");
 }
-trace('OUTPUT  : [' . shorten_path($output_dir) . ']', 'INFO');
+trace('OUTPUT  : ['.shorten_path($output_dir).']', 'INFO');
 
-////---------------------------------------------------------
-//// PROCESS ALL THE TEXT/IMAGE OPERATIONS
-////---------------------------------------------------------
+// //---------------------------------------------------------
+// // PROCESS ALL THE TEXT/IMAGE OPERATIONS
+// //---------------------------------------------------------
 $sections = $ini->get_sections();
 if ($sections) {
     foreach ($sections as $section) {
@@ -90,9 +90,9 @@ if ($ini->get_value('_export', 'contact_name')) {
 $quality = $ini->get_value('_export', 'export_quality', 95);
 $AddMagick[] = "-quality $quality";
 
-////---------------------------------------------------------
-//// FIND ALL THE IMAGE FILES
-////---------------------------------------------------------
+// //---------------------------------------------------------
+// // FIND ALL THE IMAGE FILES
+// //---------------------------------------------------------
 
 if (str_contains($wildcard, ',')) {
     // several sets of *.$wildcard files
@@ -113,16 +113,16 @@ if (str_contains($wildcard, ',')) {
         $imgfiles[$onepic] = basename($onepic, ".$wildcard");
     }
 }
-if (!$imgfiles) {
+if (! $imgfiles) {
     trace('No image files found - nothing to export', 'ERROR');
 }
 
-////---------------------------------------------------------
-//// PROCESS ALL THE IMAGE FILES
-////---------------------------------------------------------
+// //---------------------------------------------------------
+// // PROCESS ALL THE IMAGE FILES
+// //---------------------------------------------------------
 
 ksort($imgfiles);
-//print_r($imgfiles);
+// print_r($imgfiles);
 $totimgs = count($imgfiles);
 trace("IMAGES  : $totimgs to process", 'INFO');
 $i = 0;
@@ -135,14 +135,14 @@ foreach ($imgfiles as $imgfile => $imgname) {
     $cmd_magick = implode(' ', $AddMagick);
     $outfile = "$imgname.$outfmt";
     $outpath = "$output_dir/$outfile";
-    if (!file_exists($outpath) or $overwrite or filemtime($imgfile) > filemtime($outpath)) {
+    if (! file_exists($outpath) or $overwrite or filemtime($imgfile) > filemtime($outpath)) {
         if ($new > 3) {
             $elapsed = microtime(true) - $t_start;
             $pps = round($new / $elapsed, 1);
             $mbps = round($b_processed / (1000000 * $elapsed), 1);
-            trace("PMARK IT: [$bname] (" . round($i * 100 / $totimgs) . "% - $pps pics/sec - $mbps MB/s)", 'STAY');
+            trace("PMARK IT: [$bname] (".round($i * 100 / $totimgs)."% - $pps pics/sec - $mbps MB/s)", 'STAY');
         } else {
-            trace("PMARK IT: [$bname] (" . round($i * 100 / $totimgs) . '%)', 'STAY');
+            trace("PMARK IT: [$bname] (".round($i * 100 / $totimgs).'%)', 'STAY');
         }
         $pm->RunMagick("\"$imgfile\" $cmd_magick \"$outpath\"");
         $new++;
@@ -154,24 +154,24 @@ $pps = round($new / $elapsed, 1);
 $mbps = round($b_processed / (1000000 * $elapsed), 1);
 echo "\n";
 trace("FINISHED: $new pics converted at $pps pics/sec", 'INFO');
-if (!$debug) {
+if (! $debug) {
     $pm->Cleanup();
 }
 sleep(2);
-////---------------------------------------------------------
-//// SHOW OUTPUT FOLDER
-////---------------------------------------------------------
+// //---------------------------------------------------------
+// // SHOW OUTPUT FOLDER
+// //---------------------------------------------------------
 
 switch (PHP_OS) {
     case 'WINNT':
     case 'Windows':
     case 'WIN32':
         // code...
-        cmdline('explorer "' . realpath($output_dir) . '"'); // for win
+        cmdline('explorer "'.realpath($output_dir).'"'); // for win
         break;
 
     default:
-        cmdline('open "' . realpath($output_dir) . '"'); // for mac
+        cmdline('open "'.realpath($output_dir).'"'); // for mac
         // code...
         break;
 }
@@ -198,19 +198,19 @@ function resolve_dir($folder, $file = false)
     date:modify=2013-06-12T01:13:39+02:00
     */
     if (str_contains($folder, '$img')) {
-        if (!$file) {
+        if (! $file) {
             $imgfiles = glob('*');
             $file = $imgfiles[0];
         }
         $lines = cmdline("\"$identify\" -format \"%[exif:*]\" \"$file\"");
-        trace('EXIF DATA:' . implode("\n", $lines));
+        trace('EXIF DATA:'.implode("\n", $lines));
         $date_modif = '';
         foreach ($lines as $line) {
             if (str_contains($line, 'exif:DateTimeOriginal')) {
                 [$key, $date_modif] = explode('=', $line, 2);
             }
         }
-        if (!$date_modif) {
+        if (! $date_modif) {
             $time_modif = time();
         } else {
             $time_modif = strtotime($date_modif);
@@ -219,7 +219,7 @@ function resolve_dir($folder, $file = false)
         $replace['$imgmonth'] = date('Y-m', $time_modif);
         $replace['$imgdate'] = date('Y-m-d', $time_modif);
     }
-    //print_r($replace);
+    // print_r($replace);
     $return = str_replace(array_keys($replace), array_values($replace), $folder);
     trace("resolve_dir: [$folder] -> [$return]");
 

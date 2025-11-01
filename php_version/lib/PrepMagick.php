@@ -4,23 +4,23 @@ include_once 'Tools.php';
 
 class PrepMagick
 {
-    public $Gravity = 'center';
+    public string $Gravity = 'center';
 
-    public $FontFam = 'Gabriola';
+    public string $FontFam = 'Gabriola';
 
-    public $FontSize = '50';
+    public string $FontSize = '50';
 
-    public $FontFill = '#FFFF';
+    public string $FontFill = '#FFFF';
 
-    public $Undercolor = '#0000';
+    public string $Undercolor = '#0000';
 
-    public $TmpFiles = [];
+    public array $TmpFiles = [];
 
-    public $Magick = 'magick.exe';
+    public string $Magick = 'magick.exe';
 
-    public $Identify = 'identify.exe';
+    public string $Identify = 'identify.exe';
 
-    public $TmpDir = '.temp';
+    public string $TmpDir = '.temp';
 
     public function __construct()
     {
@@ -50,7 +50,7 @@ class PrepMagick
         $alpha = $this->getvalue($parameters, 'alpha', 100);
         $rotation = $this->getvalue($parameters, 'rotation', 0);
 
-        $encoded = html_entity_decode($text, null, 'ISO-8859-1');
+        $encoded = html_entity_decode($text, ENT_QUOTES, 'ISO-8859-1');
 
         // let's make a temp image
         $begin = preg_replace('#[^a-zA-Z0-9]*#', '', $encoded);
@@ -66,7 +66,7 @@ class PrepMagick
             $angle = 10;
         }
         if ($rotation) {
-            //$line.="-rotate $rotation ";
+            // $line.="-rotate $rotation ";
             $angle += $rotation;
         }
         $shadow = 1;
@@ -96,7 +96,7 @@ class PrepMagick
                 $line .= "-annotate {$rotation}x{$angle}-$shadow+$shadow \"$encoded\" ";
                 $line .= "-annotate {$rotation}x{$angle}+$shadow-$shadow \"$encoded\" ";
                 $line .= "-annotate {$rotation}x{$angle}-$shadow-$shadow \"$encoded\" ";
-                //$line.="-blur 0x1 ";
+                // $line.="-blur 0x1 ";
                 $line .= "-fill \"$color\" ";
                 if ($undercolor) {
                     $line .= "-undercolor \"$undercolor\" ";
@@ -115,9 +115,9 @@ class PrepMagick
         }
         $line .= "-trim +repage -bordercolor \"$background\" -border $padding -quality 99 ";
         $this->RunMagick(" $line \"$tmp_txt\"");
-//        if (! file_exists($tmp_txt)) {
-//            trace("Cannot create TXT image for [$html]", 'ERROR');
-//        }
+        //        if (! file_exists($tmp_txt)) {
+        //            trace("Cannot create TXT image for [$html]", 'ERROR');
+        //        }
         trace("MARK TXT: [$begin]", 'INFO');
 
         return "-gravity $grav \"$tmp_txt\" -composite";
@@ -215,7 +215,7 @@ class PrepMagick
         if ($parameters['contact_url']) {
             $iptc_tags[] = $this->format_iptc('2#80#By-line', $parameters['contact_url']);
             $iptc_tags[] = $this->format_iptc('2#116#Copyright Notice', $parameters['contact_url']);
-            //$iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["contact_url"]);
+            // $iptc_tags[]=$this->format_iptc("2#120#Caption",$aparams["contact_url"]);
         }
         if ($iptc_tags) {
             sort($iptc_tags);
@@ -229,21 +229,17 @@ class PrepMagick
 
     }
 
-    public function format_iptc($key, $val)
+    public function format_iptc($key, $val): string
     {
         return "$key=\"$val\"";
     }
 
-    public function getvalue($avalues, $key, $default)
+    public function getvalue($avalues, $key, $default): mixed
     {
-        if (isset($avalues[$key])) {
-            return $avalues[$key];
-        } else {
-            return $default;
-        }
+        return $avalues[$key] ?? $default;
     }
 
-    public function RunMagick($line)
+    public function RunMagick($line): array
     {
         $cmd = "\"$this->Magick\" $line 2>&1";
         $result = cmdline($cmd);
@@ -254,39 +250,19 @@ class PrepMagick
         return $result;
     }
 
-    public function RunIdentify($line)
-    {
-        $cmd = "\"$this->Identify\" $line 2>&1";
-
-        return cmdline($cmd);
-    }
-
-    public function Cleanup()
+    public function Cleanup(): void
     {
         foreach ($this->TmpFiles as $tmpfile) {
             unlink($tmpfile);
         }
     }
 
-    //---------------
-    public function GetTextFormat()
-    {
-        return "-font \"$this->FontFam\" -gravity $this->Gravity -fill $this->FontFill -undercolor \"$this->Undercolor\" -pointsize $this->FontSize";
-    }
-
     public function CalcShowColor($original)
     {
-        switch ($original) {
-            case '#FFF':
-            case '#FFFF':
-                return '#0008';
-                break;
-            case '#000':
-            case '#000F':
-                return '#FFF8';
-                break;
-            default:
-                return '#0008';
-        }
+        return match ($original) {
+            '#FFF', '#FFFF' => '#0008',
+            '#000', '#000F' => '#FFF8',
+            default => '#0008',
+        };
     }
 }

@@ -99,7 +99,7 @@ function listfiles(string $folder, string $ext = '', bool $recursive = false)
             if ($ext and strpos($cfile, $ext) < 1) {
                 $selected = false;
             }
-            //trace("listfiles: [$cfull] : $selected");
+            // trace("listfiles: [$cfull] : $selected");
             if ($selected) {
                 $selection[] = $cfull;
             }
