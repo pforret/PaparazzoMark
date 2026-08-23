@@ -106,7 +106,9 @@ overwrite=1
 
 [_default]
 ;; Default values for text overlays
-text_font="Arial"
+text_font="Nunito-Regular"
+; A font name from the /font directory, a font file, or an ImageMagick font
+; Run: paparazzomark config:fonts
 text_color="#FFF8"
 text_size="30"
 padding="10"

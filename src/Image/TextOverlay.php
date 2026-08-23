@@ -6,6 +6,15 @@ namespace Pforret\PaparazzoMark\Image;
 
 class TextOverlay
 {
+    /** Font file types that can be passed to ImageMagick's -font option */
+    private const FONT_EXTENSIONS = ['ttf', 'otf', 'ttc', 'pfa', 'pfb'];
+
+    /** Cache of normalized font name => font file path, per font directory */
+    private static array $fontFileCache = [];
+
+    /** Cache of "executable|font name" => whether ImageMagick can render with it */
+    private static array $fontProbeCache = [];
+
     private TempFileManager $tempFileManager;
 
     private string $magickExecutable;
@@ -24,7 +33,9 @@ class TextOverlay
     {
         // Extract parameters with defaults
         $text = $parameters['text'] ?? '';
-        $font = $parameters['text_font'] ?? 'Courier';
+        // Default to a bundled font: 'Courier' and friends are not resolvable
+        // on ImageMagick builds without a font registry
+        $font = ! empty($parameters['text_font']) ? $parameters['text_font'] : 'Nunito-Regular';
         $size = (int) ($parameters['text_size'] ?? 50);
         $color = $parameters['text_color'] ?? '#FFF';
         $style = strtolower($parameters['text_effect'] ?? '');
@@ -155,36 +166,109 @@ class TextOverlay
     }
 
     /**
-     * Resolve font path - if it's a TTF file, look in /font directory
+     * Resolve a configured font to something ImageMagick can render:
+     * an existing font file path, a file in the project /font directory,
+     * or a font name from ImageMagick's own registry.
+     *
+     * @throws \RuntimeException when the font cannot be resolved - rendering
+     *                           with an unknown font silently produces an empty overlay
      */
     private function resolveFontPath(string $font): string
     {
-        // If it's already an absolute path and exists, use it
-        if (file_exists($font)) {
+        if ($font === '') {
+            return $font;
+        }
+
+        // Explicit path (absolute, or relative to the current directory)
+        if (is_file($font)) {
             return realpath($font);
         }
 
-        // If it looks like a font file (ends with .ttf, .otf, etc.)
-        if (preg_match('/\.(ttf|otf|TTF|OTF)$/', $font)) {
-            // Try to find it in the project's /font directory
-            $projectRoot = dirname(__DIR__, 2);
-            $fontPath = $projectRoot.DIRECTORY_SEPARATOR.'font'.DIRECTORY_SEPARATOR.$font;
-
-            if (file_exists($fontPath)) {
-                return realpath($fontPath);
-            }
-
-            // Try without the extension (maybe it's already in the path)
-            $baseName = pathinfo($font, PATHINFO_FILENAME);
-            $possiblePath = $projectRoot.DIRECTORY_SEPARATOR.'font'.DIRECTORY_SEPARATOR.$baseName;
-            foreach (['.ttf', '.TTF', '.otf', '.OTF'] as $ext) {
-                if (file_exists($possiblePath.$ext)) {
-                    return realpath($possiblePath.$ext);
-                }
-            }
+        // File in the project's /font directory, matched on a normalized name so
+        // "IM-FELL-DW-Pica-Italic" also finds "IMFellDWPica-Italic.ttf"
+        $fontFiles = $this->getFontDirFiles(dirname(__DIR__, 2).DIRECTORY_SEPARATOR.'font');
+        $normalized = $this->normalizeFontName($font);
+        if (isset($fontFiles[$normalized])) {
+            return $fontFiles[$normalized];
         }
 
-        // Otherwise, return as-is (might be a font name in ImageMagick's registry)
-        return $font;
+        // Font name ImageMagick can resolve itself ("Arial", "Helvetica", ...)
+        if ($this->canRenderWith($font)) {
+            return $font;
+        }
+
+        throw new \RuntimeException(
+            "Unknown font: {$font}. Use a font file, a font from the /font directory, ".
+            "or an ImageMagick font name - run 'paparazzomark config:fonts' to list them."
+        );
+    }
+
+    /**
+     * Index the font files in a directory by normalized name
+     *
+     * @return array<string, string> normalized name => absolute path
+     */
+    private function getFontDirFiles(string $fontDir): array
+    {
+        if (isset(self::$fontFileCache[$fontDir])) {
+            return self::$fontFileCache[$fontDir];
+        }
+
+        $fonts = [];
+        foreach (glob($fontDir.DIRECTORY_SEPARATOR.'*') ?: [] as $path) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            if (! in_array($extension, self::FONT_EXTENSIONS, true)) {
+                continue;
+            }
+
+            $name = $this->normalizeFontName(pathinfo($path, PATHINFO_FILENAME));
+            // First match wins, so a later file never shadows an earlier one
+            $fonts[$name] ??= realpath($path);
+        }
+
+        return self::$fontFileCache[$fontDir] = $fonts;
+    }
+
+    /**
+     * Check whether ImageMagick can actually render with this font name.
+     * Probing beats reading '-list font': builds that delegate to fontconfig
+     * resolve names they do not list, and a name ImageMagick cannot read only
+     * produces a warning - the render then silently yields an empty overlay.
+     */
+    private function canRenderWith(string $font): bool
+    {
+        $key = $this->magickExecutable.'|'.$font;
+        if (isset(self::$fontProbeCache[$key])) {
+            return self::$fontProbeCache[$key];
+        }
+
+        $output = [];
+        $returnVar = 0;
+        exec(
+            sprintf(
+                '"%s" -size 10x10 canvas:#0000 -font "%s" -pointsize 10 -annotate 0x0+0+0 "A" null: 2>&1',
+                $this->magickExecutable,
+                $font
+            ),
+            $output,
+            $returnVar
+        );
+
+        return self::$fontProbeCache[$key] = ($returnVar === 0);
+    }
+
+    /**
+     * Normalize a font name for comparison: lowercase, without separators
+     * or file extension, so "IM-FELL-DW-Pica-Italic", "IMFellDWPica-Italic.ttf"
+     * and "im fell dw pica italic" all match
+     */
+    private function normalizeFontName(string $font): string
+    {
+        $extension = strtolower(pathinfo($font, PATHINFO_EXTENSION));
+        if (in_array($extension, self::FONT_EXTENSIONS, true)) {
+            $font = pathinfo($font, PATHINFO_FILENAME);
+        }
+
+        return strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $font) ?? $font);
     }
 }

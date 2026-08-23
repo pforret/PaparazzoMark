@@ -45,9 +45,13 @@ class ImageProcessor
         $commandParts = [];
 
         // Resize operation
-        $height = (int) ($globalConfig['export_height'] ?? 800);
-        $width = (int) ($globalConfig['export_width'] ?? ($height * 1.5));
-        $commandParts[] = "-resize {$width}x{$height}";
+        $height = (int) ($globalConfig['export_height'] ?: 800);
+        $width = ! empty($globalConfig['export_width']) ? (int) $globalConfig['export_width'] : 0;
+        if ($width > 0) {
+            $commandParts[] = "-resize {$width}x{$height}";
+        } else {
+            $commandParts[] = "-resize x{$height}";
+        }
 
         // Process overlay operations
         foreach ($operations as $operation) {
