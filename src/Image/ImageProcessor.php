@@ -41,6 +41,25 @@ class ImageProcessor
         array $operations,
         array $globalConfig
     ): void {
+        // Execute ImageMagick
+        $this->runMagick($this->buildCommand($inputPath, $outputPath, $operations, $globalConfig));
+
+        if (! file_exists($outputPath)) {
+            throw new \RuntimeException("Failed to create output image: {$outputPath}");
+        }
+    }
+
+    /**
+     * Build the full ImageMagick argument string for one image, rendering
+     * any overlay temp files that are not cached yet. The result can be
+     * passed to runMagick() or executed externally (e.g. in parallel).
+     */
+    public function buildCommand(
+        string $inputPath,
+        string $outputPath,
+        array $operations,
+        array $globalConfig
+    ): string {
         // Build ImageMagick command parts
         $commandParts = [];
 
@@ -89,12 +108,12 @@ class ImageProcessor
         // Build full command
         $command = implode(' ', $commandParts);
 
-        // Execute ImageMagick
-        $this->runMagick("\"{$inputPath}\" {$command} \"{$outputPath}\"");
+        return "\"{$inputPath}\" {$command} \"{$outputPath}\"";
+    }
 
-        if (! file_exists($outputPath)) {
-            throw new \RuntimeException("Failed to create output image: {$outputPath}");
-        }
+    public function getMagickExecutable(): string
+    {
+        return $this->magickExecutable;
     }
 
     /**

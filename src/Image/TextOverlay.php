@@ -15,6 +15,9 @@ class TextOverlay
     /** Cache of "executable|font name" => whether ImageMagick can render with it */
     private static array $fontProbeCache = [];
 
+    /** Cache of rendered overlays: params hash => composite command */
+    private array $overlayCache = [];
+
     private TempFileManager $tempFileManager;
 
     private string $magickExecutable;
@@ -31,6 +34,13 @@ class TextOverlay
      */
     public function create(array $parameters): string
     {
+        // The overlay only depends on the parameters, so render it once
+        // and reuse the same temp file for every processed image
+        $cacheKey = md5(serialize($parameters));
+        if (isset($this->overlayCache[$cacheKey])) {
+            return $this->overlayCache[$cacheKey];
+        }
+
         // Extract parameters with defaults
         $text = $parameters['text'] ?? '';
         // Default to a bundled font: 'Courier' and friends are not resolvable
@@ -124,7 +134,7 @@ class TextOverlay
         $this->runMagick($line." \"{$tmpTxt}\"");
 
         // Return composite command
-        return "-gravity {$gravity} \"{$tmpTxt}\" -composite";
+        return $this->overlayCache[$cacheKey] = "-gravity {$gravity} \"{$tmpTxt}\" -composite";
     }
 
     /**

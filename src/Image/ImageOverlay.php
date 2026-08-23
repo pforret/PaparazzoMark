@@ -10,6 +10,9 @@ class ImageOverlay
 
     private string $magickExecutable;
 
+    /** Cache of rendered overlays: params hash => composite command */
+    private array $overlayCache = [];
+
     public function __construct(TempFileManager $tempFileManager, string $magickExecutable = 'convert')
     {
         $this->tempFileManager = $tempFileManager;
@@ -26,6 +29,13 @@ class ImageOverlay
         $imagePath = $parameters['image'] ?? null;
         if (! $imagePath) {
             return false;
+        }
+
+        // The overlay only depends on the parameters, so render it once
+        // and reuse the same temp file for every processed image
+        $cacheKey = md5(serialize($parameters));
+        if (isset($this->overlayCache[$cacheKey])) {
+            return $this->overlayCache[$cacheKey];
         }
 
         // Check if file exists
@@ -84,7 +94,7 @@ class ImageOverlay
         }
 
         // Return composite command
-        return "-gravity {$gravity} \"{$tmpImg}\" -composite";
+        return $this->overlayCache[$cacheKey] = "-gravity {$gravity} \"{$tmpImg}\" -composite";
     }
 
     /**

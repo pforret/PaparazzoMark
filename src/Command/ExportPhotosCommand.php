@@ -24,7 +24,8 @@ class ExportPhotosCommand extends Command
         $this
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'Path to config file', 'pmark.ini')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show what would be done without processing')
-            ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Keep temp files for debugging');
+            ->addOption('debug', 'd', InputOption::VALUE_NONE, 'Keep temp files for debugging')
+            ->addOption('jobs', 'j', InputOption::VALUE_REQUIRED, 'Number of images to process in parallel (default: CPU count)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -147,6 +148,9 @@ class ExportPhotosCommand extends Command
         $exportFormat = $config->getValue('_export', 'export_format', 'jpg');
         $overwrite = (bool) $config->getValue('_export', 'overwrite', false);
 
+        $jobs = (int) ($input->getOption('jobs') ?: $this->detectCpuCount());
+        $jobs = max(1, $jobs);
+
         // 8. Process images
         $io->newLine();
         $progressBar = $io->createProgressBar($totalImages);
@@ -157,10 +161,12 @@ class ExportPhotosCommand extends Command
         $bytesProcessed = 0;
         $startTime = microtime(true);
 
+        // Collect the images that need processing; building the commands up
+        // front also renders each overlay temp file exactly once
+        $queue = [];
         foreach ($images as $imagePath => $imageName) {
             $outputPath = $outputDir.DIRECTORY_SEPARATOR."{$imageName}.{$exportFormat}";
 
-            // Check if processing is needed
             $needsProcessing = ! file_exists($outputPath) ||
                 $overwrite ||
                 filemtime($imagePath) > filemtime($outputPath);
@@ -173,18 +179,71 @@ class ExportPhotosCommand extends Command
             }
 
             try {
-                $processor->processImage($imagePath, $outputPath, $operations, $globalConfig);
-                $processed++;
-                $bytesProcessed += filesize($imagePath);
+                $queue[] = [
+                    'input' => $imagePath,
+                    'output' => $outputPath,
+                    'command' => $processor->buildCommand($imagePath, $outputPath, $operations, $globalConfig),
+                ];
             } catch (\Exception $e) {
                 $io->newLine(2);
                 $io->warning("Failed to process {$imagePath}: {$e->getMessage()}");
                 if ($output->isVerbose()) {
                     $io->writeln($e->getTraceAsString());
                 }
+                $progressBar->advance();
+            }
+        }
+
+        // Run up to $jobs ImageMagick processes concurrently
+        $magick = $processor->getMagickExecutable();
+        $running = [];
+        $failures = [];
+
+        while ($queue || $running) {
+            while ($queue && count($running) < $jobs) {
+                $job = array_shift($queue);
+                $process = proc_open(
+                    "\"{$magick}\" {$job['command']} 2>&1",
+                    [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                    $pipes
+                );
+                if ($process === false) {
+                    $failures[$job['input']] = 'could not start ImageMagick process';
+                    $progressBar->advance();
+
+                    continue;
+                }
+                stream_set_blocking($pipes[1], false);
+                $running[] = ['process' => $process, 'pipes' => $pipes, 'job' => $job];
             }
 
-            $progressBar->advance();
+            usleep(10000);
+
+            foreach ($running as $key => $worker) {
+                if (proc_get_status($worker['process'])['running']) {
+                    continue;
+                }
+
+                foreach ($worker['pipes'] as $pipe) {
+                    fclose($pipe);
+                }
+                proc_close($worker['process']);
+                unset($running[$key]);
+
+                $job = $worker['job'];
+                if (file_exists($job['output'])) {
+                    $processed++;
+                    $bytesProcessed += filesize($job['input']);
+                } else {
+                    $failures[$job['input']] = "failed to create output image: {$job['output']}";
+                }
+                $progressBar->advance();
+            }
+        }
+
+        foreach ($failures as $imagePath => $reason) {
+            $io->newLine(2);
+            $io->warning("Failed to process {$imagePath}: {$reason}");
         }
 
         $progressBar->finish();
@@ -216,6 +275,20 @@ class ExportPhotosCommand extends Command
         $this->openOutputFolder($outputDir);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Detect the number of CPU cores for the default parallelism
+     */
+    private function detectCpuCount(): int
+    {
+        $count = match (PHP_OS_FAMILY) {
+            'Windows' => (int) getenv('NUMBER_OF_PROCESSORS'),
+            'Darwin' => (int) shell_exec('sysctl -n hw.ncpu'),
+            default => (int) shell_exec('nproc 2>/dev/null'),
+        };
+
+        return $count > 0 ? $count : 4;
     }
 
     /**
